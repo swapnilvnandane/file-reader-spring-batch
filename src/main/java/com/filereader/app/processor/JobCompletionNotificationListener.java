@@ -11,6 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+/**
+ * JobCompletionNotificationListener class is used to move the file to archive or error directory based on the job status.
+ */
 @Component
 public class JobCompletionNotificationListener implements JobExecutionListener {
 
@@ -20,6 +23,10 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
     @Value("${com.file.error}")
     private String errorDirectory;
 
+    /**
+     * The afterJob method is used to perform the action after the job execution.
+     * @param jobExecution a {@link JobExecution} object.
+     */
     @Override
     public void afterJob(JobExecution jobExecution) {
         if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
@@ -29,6 +36,11 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
         }
     }
 
+    /**
+     * The moveFile method is used to move the file to the target directory.
+     * @param jobExecution a {@link JobExecution} object.
+     * @param targetDirectory a {@link String} object.
+     */
     private void moveFile(JobExecution jobExecution, String targetDirectory) {
         try {
             String fiePath = jobExecution.getJobParameters().getString("filePath");

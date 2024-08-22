@@ -18,14 +18,31 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 
+/**
+ * DirectoryWatcherService class is used to watch the directory for new files and trigger the job.
+ */
 @Service
 public class DirectoryWatcherService implements Runnable {
 
+    // The WatchService class is used to watch the directory for new files.
     private final WatchService watchService;
+
+    // The JobLauncher class is used to launch the job.
     private final JobLauncher jobLauncher;
+
+    // The Job class is used to define the job.
     private final Job job;
+
+    // The inputDir is used to store the input directory path.
     private final Path inputDir;
 
+    /**
+     * The DirectoryWatcherService constructor is used to initialize the DirectoryWatcherService object.
+     * @param inputDirectory a {@link String} object.
+     * @param jobLauncher a {@link JobLauncher} object.
+     * @param job a {@link Job} object.
+     * @throws IOException an {@link IOException} object.
+     */
     @Autowired
     public DirectoryWatcherService(@Value("${com.file.location}") String inputDirectory,
                                    JobLauncher jobLauncher, Job job) throws IOException {
@@ -36,12 +53,18 @@ public class DirectoryWatcherService implements Runnable {
         this.inputDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
     }
 
+    /**
+     * The startWatching method is used to start watching the directory for new files with help of thread.
+     */
     @PostConstruct
     public void startWatching() {
         Thread thread = new Thread(this);
         thread.start();
     }
 
+    /**
+     * The run method is used to watch the directory for new files and trigger the job.
+     */
     @Override
     public void run() {
         WatchKey key;
@@ -68,6 +91,11 @@ public class DirectoryWatcherService implements Runnable {
         }
     }
 
+    /**
+     * The triggerJob method is used to trigger the job.
+     * @param filePath a {@link String} object.
+     * @param fileName a {@link String} object.
+     */
     private void triggerJob(String filePath, String fileName) {
         try {
             JobParameters jobParameters = new JobParametersBuilder()

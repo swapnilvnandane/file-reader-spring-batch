@@ -15,20 +15,41 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
+/**
+ * InMemoryJobRepository class is used to store the job execution details in memory.
+ */
 public class InMemoryJobRepository implements JobRepository {
 
+    /** The jobInstanceMap is used to store the job instance details. **/
     private final Map<Long, JobInstance> jobInstanceMap = new ConcurrentHashMap<>();
+
+    /** The jobExecutionMap is used to store the job execution details. **/
     private final Map<Long, JobExecution> jobExecutionMap = new ConcurrentHashMap<>();
+
+    /** The transactionManager is used to manage the transaction. **/
     private final PlatformTransactionManager transactionManager = new ResourcelessTransactionManager();
+
+    /** The transactionTemplate is used to execute the transaction. **/
     private final TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
 
+    /**
+     * The isJobInstanceExists method is used to check whether the job instance exists or not.
+     * @param jobName a {@link String} object.
+     * @param jobParameters a {@link JobParameters} object.
+     * @return a {@link boolean} value.
+     */
     @Override
     public boolean isJobInstanceExists(String jobName, JobParameters jobParameters) {
         return this.jobInstanceMap.values().stream()
                 .anyMatch(jobInstance -> jobInstance.getJobName().equals(jobName));
     }
 
+    /**
+     * The createJobInstance method is used to create the job instance.
+     * @param jobName a {@link String} object.
+     * @param jobParameters a {@link JobParameters} object.
+     * @return a {@link JobInstance} object.
+     */
     @Override
     public JobInstance createJobInstance(String jobName, JobParameters jobParameters) {
         JobInstance jobInstance = new JobInstance(System.currentTimeMillis(), jobName);
@@ -36,8 +57,18 @@ public class InMemoryJobRepository implements JobRepository {
         return jobInstance;
     }
 
+    /**
+     * The createJobExecution method is used to create the job execution.
+     * @param jobName a {@link String} object.
+     * @param jobParameters a {@link JobParameters} object.
+     * @return a {@link JobExecution} object.
+     * @throws JobExecutionAlreadyRunningException if the job execution is already running.
+     * @throws JobRestartException if the job execution is restarted.
+     * @throws JobInstanceAlreadyCompleteException if the job instance is already completed.
+     */
     @Override
-    public JobExecution createJobExecution(String jobName, JobParameters jobParameters) throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException {
+    public JobExecution createJobExecution(String jobName, JobParameters jobParameters) throws JobExecutionAlreadyRunningException,
+            JobRestartException, JobInstanceAlreadyCompleteException {
         JobInstance jobInstance = jobInstanceMap.values().stream()
                 .filter(ji -> ji.getJobName().equals(jobName))
                 .findFirst()
@@ -47,6 +78,10 @@ public class InMemoryJobRepository implements JobRepository {
         return jobExecution;
     }
 
+    /**
+     * The update method is used to update the job execution.
+     * @param jobExecution a {@link JobExecution} object.
+     */
     @Override
     public void update(JobExecution jobExecution) {
         jobExecutionMap.putIfAbsent(jobExecution.getId(), jobExecution);
@@ -82,6 +117,12 @@ public class InMemoryJobRepository implements JobRepository {
         return 0;
     }
 
+    /**
+     * The getLastJobExecution method is used to get the last job execution.
+     * @param jobName a {@link String} object.
+     * @param jobParameters a {@link JobParameters} object.
+     * @return a {@link JobExecution} object.
+     */
     @Override
     public JobExecution getLastJobExecution(String jobName, JobParameters jobParameters) {
         JobInstance jobInstance = jobInstanceMap.values().stream()

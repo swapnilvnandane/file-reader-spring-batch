@@ -14,6 +14,9 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 
+/**
+ * MyTest class is used to create the entity for the mytest table.
+ */
 @Data
 @Entity
 @Table(name = "mytest")
@@ -44,6 +47,7 @@ public class MyTest {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // Update the updatedAt value when the record is updated
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();

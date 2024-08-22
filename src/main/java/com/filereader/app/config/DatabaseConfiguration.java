@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
+/**
+ * DatabaseConfiguration class is used to configure the MySQL database connection.
+ */
 @RequiredArgsConstructor
 @Configuration
 @EnableTransactionManagement
@@ -27,8 +30,13 @@ public class DatabaseConfiguration {
     private static final String PERSISTENCE_UNIT = "file-reader-batch";
     private static final String POOL_NAME = PERSISTENCE_UNIT;
 
+    /** The DatabaseProperties class is used to read the properties from the application.yml file or from environment variables. **/
     private final DatabaseProperties databaseProperties;
 
+    /**
+     * The dataSource method is used to create the HikariDataSource object.
+     * @return {@link DataSource} object.
+     */
     @Bean
     @Primary
     public DataSource dataSource() {
@@ -49,12 +57,22 @@ public class DatabaseConfiguration {
         return new HikariDataSource(config);
     }
 
+    /**
+     * The fileReaderEM method is used to create the LocalContainerEntityManagerFactoryBean object.
+     * @param builder {@link EntityManagerFactoryBuilder} object.
+     * @return {@link LocalContainerEntityManagerFactoryBean} object.
+     */
     @Bean
     @Primary
     public LocalContainerEntityManagerFactoryBean fileReaderEM(EntityManagerFactoryBuilder builder) {
         return builder.dataSource(dataSource()).packages(ENTITY_PKG).persistenceUnit(PERSISTENCE_UNIT).build();
     }
 
+    /**
+     * The fileReaderTM method is used to create the JpaTransactionManager object.
+     * @param builder {@link EntityManagerFactoryBuilder} object.
+     * @return {@link PlatformTransactionManager} object.
+     */
     @Bean
     @Primary
     public PlatformTransactionManager fileReaderTM(EntityManagerFactoryBuilder builder) {
