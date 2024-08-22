@@ -1,0 +1,7 @@
+
+com:
+  file:
+    location: /home/
+    separator: ","
+    archive: ${com.file.location}archive/
+    error: ${com.file.location}error/
