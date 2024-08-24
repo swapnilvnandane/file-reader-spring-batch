@@ -2,6 +2,7 @@
 
 ## Overview
 This project is a Spring Boot application that processes files using Spring Batch. It includes validation, database persistence, and file archiving/error handling.
+Along with file system, it also supports reading files from AWS S3 bucket with the help of AWS SQS queue service.
 
 ## Technologies Used
 - Java
@@ -13,6 +14,7 @@ This project is a Spring Boot application that processes files using Spring Batc
 - Lombok
 - Jasypt
 - SQL
+- AWS S3 and SQS
 
 ## Setup and Installation
 1. **Clone the repository:**
@@ -35,10 +37,15 @@ This project is a Spring Boot application that processes files using Spring Batc
 
 4. **Run the application:**
     ```sh
-    mvn spring-boot:run -Djasypt.encryptor.password=<jasypt_salt>
+    mvn spring-boot:run -Dspring.profiles.active=<requires_profile> -Djasypt.encryptor.password=<jasypt_salt>
     ```
 
 ## Configuration
+- **Spring profiles:**
+    - `aws` - To read / watch files on AWS S3 bucket.
+    - `filesystem` - To read / watch files from file system.
+ 
+
 - **Application YML properties:** Configure the application in `src/main/resources/application.yml`.
     ```properties
     com:
@@ -58,6 +65,11 @@ This project is a Spring Boot application that processes files using Spring Batc
     com.filereader.mysql.maxActive=30
     com.filereader.mysql.validationQuery=SELECT 1
     com.filereader.mysql.minIdle=0
+    com.aws.accessKey.id=<jasypt_encrypted_aws_access_key_id>
+    com.aws.accessKey.secret=<jasypt_encrypted_aws_access_key_secret>
+    com.aws.s3.bucket-name=<jasypt_encrypted_aws_bucket_name>
+    com.aws.region=<jasypt_encrypted_aws_region>
+    com.aws.sqs.queuename=<jasypt_encrypted_aws_sqs_queue_name>
     ```
 
 ## [Liquibase](https://www.liquibase.com/)

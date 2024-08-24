@@ -1,27 +1,21 @@
 package com.filereader.app.processor;
 
+import com.filereader.app.service.IArchiverService;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 
 /**
  * JobCompletionNotificationListener class is used to move the file to archive or error directory based on the job status.
  */
+@RequiredArgsConstructor
 @Component
 public class JobCompletionNotificationListener implements JobExecutionListener {
 
-    @Value("${com.file.archive}")
-    private String archiveDirectory;
-
-    @Value("${com.file.error}")
-    private String errorDirectory;
+    private final IArchiverService archiverService;
 
     /**
      * The afterJob method is used to perform the action after the job execution.
@@ -29,25 +23,15 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
      */
     @Override
     public void afterJob(JobExecution jobExecution) {
-        if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
-            moveFile(jobExecution, archiveDirectory);
-        } else if (jobExecution.getStatus() == BatchStatus.FAILED) {
-            moveFile(jobExecution, errorDirectory);
+        String filePath = jobExecution.getJobParameters().getString("filePath");
+        if(StringUtils.isAllBlank(filePath)){
+            filePath = jobExecution.getJobParameters().getString("bucketName");
         }
-    }
-
-    /**
-     * The moveFile method is used to move the file to the target directory.
-     * @param jobExecution a {@link JobExecution} object.
-     * @param targetDirectory a {@link String} object.
-     */
-    private void moveFile(JobExecution jobExecution, String targetDirectory) {
-        try {
-            String fiePath = jobExecution.getJobParameters().getString("filePath");
-            String fileName = jobExecution.getJobParameters().getString("fileName");
-            Files.move(Paths.get(fiePath), Paths.get(targetDirectory+fileName), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        String fileName = jobExecution.getJobParameters().getString("fileName");
+        if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
+            this.archiverService.moveFile(filePath, fileName,true);
+        } else if (jobExecution.getStatus() == BatchStatus.FAILED) {
+            this.archiverService.moveFile(filePath, fileName,false);
         }
     }
 }

@@ -1,11 +1,13 @@
 package com.filereader.app.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.filereader.app.entity.MyTest;
 import com.filereader.app.processor.CustomLineMapper;
 import com.filereader.app.processor.CustomSkipPolicy;
 import com.filereader.app.processor.CustomStepListener;
 import com.filereader.app.processor.DataTransformer;
 import com.filereader.app.processor.JobCompletionNotificationListener;
+import com.filereader.app.processor.S3Resource;
 import com.filereader.app.processor.ValidatingItemProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -22,11 +24,15 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import software.amazon.awssdk.services.s3.S3Client;
+
 /**
  * BatchConfig class is used to configure the Spring Batch job and step.
  */
@@ -43,6 +49,8 @@ public class BatchConfig {
 
     /** The ValidatingItemProcessor class is used to validate the data. **/
     private final ValidatingItemProcessor processor;
+
+    private final ApplicationContext context;
 
     /**
      * The jobRepository method is used to create the InMemoryJobRepository object.
@@ -61,6 +69,41 @@ public class BatchConfig {
     @Bean
     public PlatformTransactionManager transactionManager() {
         return new ResourcelessTransactionManager();
+    }
+
+    /**
+     * The fileItemReader method is used to create the FlatFileItemReader object.
+     * @param filePath - The input file path.
+     * @return {@link FlatFileItemReader} object.
+     */
+    @Profile("filesystem")
+    @StepScope
+    @Bean
+    public FlatFileItemReader<MyTest> fileItemReaderFile(@Value("#{jobParameters['filePath']}") String filePath) {
+        return new FlatFileItemReaderBuilder<MyTest>()
+                .name("fileItemReader")
+                .resource(new FileSystemResource(filePath))
+                .lineMapper(lineMapper)
+                .build();
+    }
+
+    /**
+     * The fileItemReader method is used to create the FlatFileItemReader object.
+     * @param s3Client - The {@link S3Client} object.
+     * @param bucketName - The bucket name.
+     * @param fileName - The input file path.
+     * @return {@link FlatFileItemReader} object.
+     */
+    @Profile("aws")
+    @StepScope
+    @Bean
+    public FlatFileItemReader<MyTest> fileItemReaderS3(S3Client s3Client, @Value("#{jobParameters['bucketName']}") String bucketName,
+                                                       @Value("#{jobParameters['fileName']}") String fileName) {
+        return new FlatFileItemReaderBuilder<MyTest>()
+                .name("fileItemReaderS3")
+                .resource(new S3Resource(s3Client, bucketName, fileName))
+                .lineMapper(lineMapper)
+                .build();
     }
 
     /**
@@ -87,39 +130,16 @@ public class BatchConfig {
      */
     @Bean
     public Step step(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+        FlatFileItemReader<MyTest> fileItemReader = context.getBean(FlatFileItemReader.class);
         return new StepBuilder("fileProcessingStep", jobRepository)
                 .<MyTest, MyTest>chunk(10, transactionManager)
-                .reader(fileItemReader(null))
+                .reader(fileItemReader)
                 .processor(processor)
                 .writer(writer)
                 .faultTolerant()
                 .skipPolicy(new CustomSkipPolicy())
                 .listener(new CustomStepListener())
                 .build();
-    }
-
-    /**
-     * The fileItemReader method is used to create the FlatFileItemReader object.
-     * @param filePath - The input file path.
-     * @return {@link FlatFileItemReader} object.
-     */
-    @StepScope
-    @Bean
-    public FlatFileItemReader<MyTest> fileItemReader(@Value("#{jobParameters['filePath']}") String filePath) {
-        return new FlatFileItemReaderBuilder<MyTest>()
-                .name("fileItemReader")
-                .resource(new FileSystemResource(filePath))
-                .lineMapper(lineMapper)
-                .build();
-    }
-
-    /**
-     * The listener method is used to create the JobCompletionNotificationListener object.
-     * @return {@link JobCompletionNotificationListener} object.
-     */
-    @Bean
-    public JobCompletionNotificationListener listener() {
-        return new JobCompletionNotificationListener();
     }
 
     /**
@@ -132,5 +152,14 @@ public class BatchConfig {
         TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
         jobLauncher.setJobRepository(jobRepository);
         return jobLauncher;
+    }
+
+    /**
+     * The objectMapper method is used to create the ObjectMapper object.
+     * @return {@link ObjectMapper} object.
+     */
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }
